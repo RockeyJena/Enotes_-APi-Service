@@ -2,6 +2,8 @@ package com.Enotes_Api_Service.Controller;
 
 import com.Enotes_Api_Service.Entity.Category;
 import com.Enotes_Api_Service.Service.CategoryService;
+import com.Enotes_Api_Service.dto.CategoryDto;
+import com.Enotes_Api_Service.dto.CategoryResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,21 +25,32 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @PostMapping("/save-category")
-    public ResponseEntity<?> saveCategory(@RequestBody Category category) {
+    public ResponseEntity<?> saveCategory(@RequestBody CategoryDto categoryDto) {
 
-        Boolean saveData = categoryService.saveCategory(category);
+        Boolean saveData = categoryService.saveCategory(categoryDto);
         if (ObjectUtils.isEmpty(saveData)) {
-            log.error("Failed to saveData : {}", category);
+            log.error("Failed to saveData : {}", categoryDto);
             return new ResponseEntity<>("Failed to save", HttpStatus.INTERNAL_SERVER_ERROR);
         } else {
-            log.info(" saveData successfully: {}", category);
+            log.info(" saveData successfully: {}", categoryDto);
             return new ResponseEntity<>("saveData store Successfully", HttpStatus.CREATED);
         }
     }
 
     @GetMapping("/getAllCategory")
     public ResponseEntity<?> getAllCategories() {
-        List<Category> categoryList = categoryService.getAllCategories();
+        List<CategoryDto> categoryList = categoryService.getAllCategories();
+        if (CollectionUtils.isEmpty(categoryList)) {
+            log.error("Failed to get all data");
+            return ResponseEntity.noContent().build();
+        } else {
+            log.info("getAllCategories successfully");
+            return new ResponseEntity<>(categoryList, HttpStatus.OK);
+        }
+    }
+        @GetMapping("/Active-Category")
+     public ResponseEntity<?> ActiveCategory() {
+        List<CategoryResponse> categoryList = categoryService.getActiveCategories();
         if (CollectionUtils.isEmpty(categoryList)) {
             log.error("Failed to get all data");
             return  ResponseEntity.noContent().build();

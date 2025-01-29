@@ -1,12 +1,16 @@
 package com.Enotes_Api_Service.Service;
 
 import com.Enotes_Api_Service.Entity.Category;
+import com.Enotes_Api_Service.dto.CategoryDto;
+import com.Enotes_Api_Service.dto.CategoryResponse;
 
 import java.util.List;
 
 public interface CategoryService {
 
-    Boolean saveCategory(Category category);
+    Boolean saveCategory(CategoryDto categoryDto);
 
-    List<Category> getAllCategories();
+    List<CategoryDto> getAllCategories();
+
+    List<CategoryResponse> getActiveCategories();
 }
