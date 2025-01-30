@@ -13,6 +13,7 @@ import org.springframework.util.ObjectUtils;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,7 +44,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<CategoryDto> getAllCategories() {
-        List<Category> categorys = categoryRepository.findAll();
+        List<Category> categorys = categoryRepository.findByIsDeletedFalse();
         List<CategoryDto> categoryDtoList = categorys.stream().map(category -> mapper.map(category, CategoryDto.class)).collect(Collectors.toList());
         log.info("getAllCategories successfully", categoryDtoList);
         return categoryDtoList;
@@ -51,8 +52,33 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<CategoryResponse> getActiveCategories() {
-        List<Category> categorys = categoryRepository.findByIsActiveTrue();
+        List<Category> categorys = categoryRepository.findByIsActiveTrueAndIsDeletedFalse();
         List<CategoryResponse> categoryResponseList = categorys.stream().map(c -> mapper.map(c, CategoryResponse.class)).toList();
         return categoryResponseList;
+    }
+
+    @Override
+    public CategoryDto getCateogryById(Integer id) {
+        Optional<Category> categoryRepositoryById = categoryRepository.findByIdAndIsDeletedFalse(id);
+        if (categoryRepositoryById.isPresent()) {
+            Category category = categoryRepositoryById.get();
+            CategoryDto categoryDto = mapper.map(category, CategoryDto.class);
+            log.info("getCategoryById successfully ,{}", categoryDto);
+            return categoryDto;
+        }
+        return null;
+    }
+
+    @Override
+    public Boolean deleteCateogryById(Integer id) {
+        Optional<Category> categoryRepositoryById = categoryRepository.findById(id);
+        if (categoryRepositoryById.isPresent()) {
+            Category category = categoryRepositoryById.get();
+            category.setIsDeleted(true);
+            categoryRepository.save(category);
+            log.info("deleteCategoryById successfully {}", id);
+            return true;
+        }
+        return false;
     }
 }
