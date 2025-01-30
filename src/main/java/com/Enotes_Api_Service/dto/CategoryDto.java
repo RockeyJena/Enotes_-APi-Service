@@ -1,5 +1,7 @@
 package com.Enotes_Api_Service.dto;
 
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,5 +19,5 @@ public class CategoryDto {
     private  Integer createdBy;
     private Integer updatedBy;
     private Date createdOn;
-    private Integer updatedOn;
+    private Date updatedOn;
 }
