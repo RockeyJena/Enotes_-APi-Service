@@ -5,6 +5,7 @@ import com.Enotes_Api_Service.Repository.CategoryRepository;
 import com.Enotes_Api_Service.Service.CategoryService;
 import com.Enotes_Api_Service.dto.CategoryDto;
 import com.Enotes_Api_Service.dto.CategoryResponse;
+import com.Enotes_Api_Service.Exception.CategoryNotUpdatableException;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
+
     @Autowired
     private CategoryRepository categoryRepository;
 
@@ -27,18 +29,65 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Boolean saveCategory(CategoryDto categoryDto) {
-//        Category category = new Category();
-//        category.setName(categoryDto.getName());
-//        category.setIsDeleted(false);
-//        category.setDescription(categoryDto.getDescription());
-//        category.setUpdatedBy(categoryDto.getUpdatedBy());
-//        category.setIsActive(categoryDto.getIsActive());
+        if (categoryDto.getId() != null) {
+            return updateExistingCategory(categoryDto);
+        } else {
+            return createNewCategory(categoryDto);
+        }
+    }
+
+    private Boolean createNewCategory(CategoryDto categoryDto) {
         Category category = mapper.map(categoryDto, Category.class);
-        category.setIsDeleted(false);
+        category.setIsDeleted(false); // New categories should not be deleted
         category.setCreatedBy(1);
         category.setCreatedOn(new Date());
-        Category save = categoryRepository.save(category);
-        log.info("Category saved successfully {}", save);
+
+        return saveCategoryToDB(category);
+    }
+
+    private Boolean updateExistingCategory(CategoryDto categoryDto) {
+        Optional<Category> categoryOpt = categoryRepository.findById(categoryDto.getId());
+        if (categoryOpt.isPresent()) {
+            Category existingCategory = categoryOpt.get();
+
+            // 🚫 Prevent update if category is deleted
+            if (existingCategory.getIsDeleted()) {
+                log.warn("This category is deleted and cannot be updated. ID: {}", categoryDto.getId());
+                // Throw custom exception with a specific message
+                throw new CategoryNotUpdatableException("Deleted category cannot be updated.");
+            }
+
+            updateCategoryFields(existingCategory, categoryDto);
+            existingCategory.setUpdatedBy(1);
+            existingCategory.setUpdatedOn(new Date());
+
+            return saveCategoryToDB(existingCategory);
+        } else {
+            log.error("Category not found with ID: {}", categoryDto.getId());
+            return false;
+        }
+    }
+
+    private void updateCategoryFields(Category category, CategoryDto categoryDto) {
+        if (categoryDto.getName() != null) {
+            category.setName(categoryDto.getName());
+        }
+        if (categoryDto.getDescription() != null) {
+            category.setDescription(categoryDto.getDescription());
+        }
+        if (categoryDto.getIsActive() != null) {
+            category.setIsActive(categoryDto.getIsActive());
+        }
+    }
+
+    private Boolean saveCategoryToDB(Category category) {
+        Category savedCategory = categoryRepository.save(category);
+        if (ObjectUtils.isEmpty(savedCategory)) {
+            log.error("Failed to save category: {}", category);
+            return false;
+        }
+
+        log.info("Category saved successfully: {}", savedCategory);
         return true;
     }
 
