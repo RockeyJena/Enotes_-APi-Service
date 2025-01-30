@@ -37,7 +37,7 @@ public class CategoryController {
         }
     }
 
-    @GetMapping("/getAllCategory")
+    @GetMapping("/")
     public ResponseEntity<?> getAllCategories() {
         List<CategoryDto> categoryList = categoryService.getAllCategories();
         if (CollectionUtils.isEmpty(categoryList)) {
@@ -48,7 +48,7 @@ public class CategoryController {
             return new ResponseEntity<>(categoryList, HttpStatus.OK);
         }
     }
-        @GetMapping("/Active-Category")
+        @GetMapping("/ActiveCategory")
      public ResponseEntity<?> ActiveCategory() {
         List<CategoryResponse> categoryList = categoryService.getActiveCategories();
         if (CollectionUtils.isEmpty(categoryList)) {
@@ -58,8 +58,27 @@ public class CategoryController {
             log.info("getAllCategories successfully");
             return new ResponseEntity<>(categoryList, HttpStatus.OK);
         }
-
-
-
     }
+    @GetMapping("/{id}")
+    public  ResponseEntity<?>getCategoryDetailsById(@PathVariable("id") Integer id ){
+       CategoryDto categoryDto= categoryService.getCateogryById(id);
+       if (ObjectUtils.isEmpty(categoryDto)){
+           log.warn("Category data fetch UnsuccessfulFul  by Id, {} :- "+id);
+           return new ResponseEntity<>("Category not found id:- " + id,HttpStatus.NOT_FOUND);
+       }
+       log.info("Category data fetch success by Id ,{}:- ",categoryDto);
+       return new ResponseEntity<>(categoryDto,HttpStatus.OK) ;
+    }
+
+    @DeleteMapping("/{id}")
+    public  ResponseEntity<?>deleteCategoryByID(@PathVariable("id") Integer id ){
+       Boolean deleted= categoryService.deleteCateogryById(id);
+       if (deleted){
+           log.info("Category delete  successfully  by Id  {} :- "+id);
+           return new ResponseEntity<>(" Category  delete  successfully  by Id :- " + id,HttpStatus.OK);
+       }
+       log.warn("Category data fetch success by Id ,{}:- ",id);
+       return new ResponseEntity<>(" delete  Unsuccessfully  Because Id not there  :-   "+ id ,HttpStatus.INTERNAL_SERVER_ERROR) ;
+    }
+
 }
