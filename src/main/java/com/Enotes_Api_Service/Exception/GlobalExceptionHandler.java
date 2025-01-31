@@ -9,11 +9,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(CategoryNotUpdatableException.class)
-    public ResponseEntity<Object> handleCategoryNotUpdatableException(CategoryNotUpdatableException ex) {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Object> handleCategoryNotUpdatableException(ResourceNotFoundException ex) {
         // Custom response structure
         ErrorResponse errorResponse = new ErrorResponse("error", ex.getMessage(), "CATEGORY_DELETED");
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<?> nullPointerExcepctuion(NullPointerException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }
