@@ -147,20 +147,35 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDto getCateogryById(Integer id) {
         try {
-            Category category = categoryRepository.findByIdAndIsDeletedFalse(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Category Not Found By Id :- " + id));
+            // Check if ID exists in the database
+            Optional<Category> categoryOptional = categoryRepository.findById(id);
 
+            if (categoryOptional.isEmpty()) {
+                log.warn("Category with ID {} does not exist", id);
+                throw new ResourceNotFoundException("Category ID " + id + " does not exist.");
+            }
+
+            // Check if the category is marked as deleted
+            Category category = categoryOptional.get();
+            if (category.getIsDeleted()) {
+                log.warn("Category with ID {} is deleted", id);
+                throw new ResourceNotFoundException("Category ID " + id + " is deleted and cannot be accessed.");
+            }
+
+            // Map to DTO and return response
             CategoryDto categoryDto = mapper.map(category, CategoryDto.class);
             log.info("Retrieved category by ID successfully: {}", id);
             return categoryDto;
+
         } catch (ResourceNotFoundException e) {
-            log.warn("Category not found: {}", e.getMessage());
+            log.warn("Resource not found: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Error while fetching category by ID {}: {}", id, e.getMessage(), e);
-            return null;
+            log.error("Unexpected error while fetching category by ID {}: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Something went wrong while fetching the category. Please try again later.");
         }
     }
+
 
     @Override
     public Boolean deleteCateogryById(Integer id) {
