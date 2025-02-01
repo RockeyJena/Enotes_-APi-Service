@@ -1,15 +1,21 @@
 package com.Enotes_Api_Service.Exception;
 
+import com.Enotes_Api_Service.Validation.ValidationException;
 import com.Enotes_Api_Service.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.core.JsonParseException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -113,4 +119,45 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse("error", " Something went wrong. Please try again later. ", " INTERNAL_SERVER_ERROR");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationException(ValidationException ex) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
+        errorResponse.put("error", "Validation Error");
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+    /**
+     * Handles JSON parsing errors like invalid Boolean values ("Tru fge")
+     */
+    @ExceptionHandler(JsonParseException.class)
+    public ResponseEntity<ErrorResponse> handleJsonParseException(JsonParseException ex) {
+        log.error("JSON Parsing Error: {}", ex.getMessage(), ex);
+        ErrorResponse errorResponse = new ErrorResponse(
+                "ERROR",
+                "Invalid data format in request body. Ensure all values are correctly typed.",
+                "JSON_PARSE_ERROR"
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+    /**
+     * Handles JSON parsing errors like invalid Boolean values ("Tru fge")
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
+        errorResponse.put("error", "Invalid input format");
+        errorResponse.put("timestamp", LocalDateTime.now());
+
+        String message = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        errorResponse.put("message", "Error parsing input: " + message);
+
+        // Optionally, you can log the exception to capture the root cause.
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
 }
