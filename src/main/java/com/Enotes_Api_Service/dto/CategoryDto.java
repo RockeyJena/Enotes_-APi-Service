@@ -14,12 +14,12 @@ import java.util.Date;
 @NoArgsConstructor
 public class CategoryDto {
     private Integer id;
-    @NotBlank(message = "Name cannot be blank")
-    @Size(min = 1, max = 100, message = "Name must be between 1 and 100 characters")
+//    @NotBlank(message = "Name cannot be blank")
+//    @Size(min = 1, max = 100, message = "Name must be between 1 and 100 characters")
     private String name;
-    @Size(min = 1, max = 100, message = "Description must be between 1 and 100 characters")
+//    @Size(min = 1, max = 100, message = "Description must be between 1 and 100 characters")
     private String description;
-    @NotNull
+//    @NotNull
     private Boolean isActive;
     private  Integer createdBy;
     private Integer updatedBy;
