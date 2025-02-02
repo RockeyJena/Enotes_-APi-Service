@@ -45,8 +45,8 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             Category category = mapper.map(categoryDto, Category.class);
             category.setIsDeleted(false); // New categories should not be deleted
-            category.setCreatedBy(1);
-            category.setCreatedOn(new Date());
+//            category.setCreatedBy(1);
+//            category.setCreatedOn(new Date());
 
             return saveCategoryToDB(category);
         } catch (Exception e) {
@@ -68,8 +68,8 @@ public class CategoryServiceImpl implements CategoryService {
                 }
 
                 updateCategoryFields(existingCategory, categoryDto);
-                existingCategory.setUpdatedBy(1);
-                existingCategory.setUpdatedOn(new Date());
+//                existingCategory.setUpdatedBy(1);
+//                existingCategory.setUpdatedOn(new Date());
 
                 return saveCategoryToDB(existingCategory);
             } else {
