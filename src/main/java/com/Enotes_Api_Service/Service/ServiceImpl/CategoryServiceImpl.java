@@ -29,7 +29,6 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public Boolean saveCategory(CategoryDto categoryDto) {
         try {
-            // Check if category name already exists (only for new categories)
             if (categoryDto.getId() == null && categoryRepository.existsByName(categoryDto.getName())) {
                 log.warn("Category name '{}' already exists", categoryDto.getName());
                 throw new ResourceNotFoundException("Category name '" + categoryDto.getName() + "' already exists.");

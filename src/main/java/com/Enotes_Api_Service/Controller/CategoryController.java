@@ -6,13 +6,13 @@ import com.Enotes_Api_Service.Validation.CategoryValidator;
 import com.Enotes_Api_Service.Validation.ValidationException;
 import com.Enotes_Api_Service.dto.CategoryDto;
 import com.Enotes_Api_Service.dto.CategoryResponse;
+import com.Enotes_Api_Service.Handler.GenericResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +24,7 @@ public class CategoryController {
 
     @Autowired
     private CategoryService categoryService;
+
     @Autowired
     private CategoryValidator categoryValidator;
 
@@ -41,53 +42,57 @@ public class CategoryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("❌ Internal server error");
         }
     }
+
     @GetMapping("/")
-    public ResponseEntity<?> getAllCategories() {
+    public ResponseEntity<GenericResponse> getAllCategories() {
         try {
             List<CategoryDto> categoryList = categoryService.getAllCategories();
             if (CollectionUtils.isEmpty(categoryList)) {
                 log.warn("No categories found");
-                return ResponseEntity.noContent().build();
+                return ResponseEntity.ok(GenericResponse.success(HttpStatus.OK, "No categories found", List.of()));
             }
             log.info("Fetched all categories successfully");
-            return new ResponseEntity<>(categoryList, HttpStatus.OK);
+            return ResponseEntity.ok(GenericResponse.success(HttpStatus.OK, "Categories fetched successfully", categoryList));
         } catch (Exception e) {
             log.error("Exception occurred while fetching categories: {}", e.getMessage(), e);
-            return new ResponseEntity<>("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GenericResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"));
         }
     }
 
     @GetMapping("/ActiveCategory")
-    public ResponseEntity<?> getActiveCategories() {
+    public ResponseEntity<GenericResponse> getActiveCategories() {
         try {
             List<CategoryResponse> categoryList = categoryService.getActiveCategories();
             if (CollectionUtils.isEmpty(categoryList)) {
                 log.warn("No active categories found");
-                return ResponseEntity.noContent().build();
+                return ResponseEntity.ok(GenericResponse.success(HttpStatus.OK, "No active categories found", List.of()));
             }
             log.info("Fetched active categories successfully");
-            return new ResponseEntity<>(categoryList, HttpStatus.OK);
+            return ResponseEntity.ok(GenericResponse.success(HttpStatus.OK, "Active categories fetched successfully", categoryList));
         } catch (Exception e) {
             log.error("Exception occurred while fetching active categories: {}", e.getMessage(), e);
-            return new ResponseEntity<>("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GenericResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"));
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCategoryDetailsById(@PathVariable("id") Integer id) {
+    public ResponseEntity<GenericResponse> getCategoryDetailsById(@PathVariable("id") Integer id) {
         try {
             CategoryDto categoryDto = categoryService.getCateogryById(id);
             log.info("Fetched category details successfully for ID: {}", id);
-            return new ResponseEntity<>(categoryDto, HttpStatus.OK);
+            return ResponseEntity.ok(GenericResponse.success(HttpStatus.OK, "Category details fetched successfully", categoryDto));
         } catch (ResourceNotFoundException e) {
             log.warn("Category retrieval failed: {}", e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(GenericResponse.failed(HttpStatus.NOT_FOUND, e.getMessage()));
         } catch (Exception e) {
             log.error("Unexpected error while fetching category by ID {}: {}", id, e.getMessage(), e);
-            return new ResponseEntity<>("Something went wrong while fetching the category.", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(GenericResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong while fetching the category."));
         }
     }
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCategoryById(@PathVariable("id") Integer id) {
@@ -95,14 +100,14 @@ public class CategoryController {
             Boolean deleted = categoryService.deleteCateogryById(id);
             if (Boolean.TRUE.equals(deleted)) {
                 log.info("Category deleted successfully for ID: {}", id);
-                return new ResponseEntity<>("Category deleted successfully for ID: " + id, HttpStatus.OK);
+                return ResponseEntity.ok("Category deleted successfully for ID: " + id);
             } else {
                 log.warn("Failed to delete category. ID not found: {}", id);
-                return new ResponseEntity<>("Category deletion failed. ID not found: " + id, HttpStatus.NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Category deletion failed. ID not found: " + id);
             }
         } catch (Exception e) {
             log.error("Exception occurred while deleting category by ID {}: {}", id, e.getMessage(), e);
-            return new ResponseEntity<>("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
         }
     }
 }
