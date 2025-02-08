@@ -30,23 +30,15 @@ public class CategoryController {
     @PostMapping("/save-category")
     public ResponseEntity<?> saveCategory(@RequestBody CategoryDto categoryDto) {
         try {
-            // Validate Input Before Processing
             categoryValidator.validate(categoryDto);
-
             Boolean saveData = categoryService.saveCategory(categoryDto);
-            if (Boolean.TRUE.equals(saveData)) {
-                log.info("✅ Category saved successfully: {}", categoryDto);
-                return new ResponseEntity<>("✅ Category stored successfully", HttpStatus.CREATED);
-            } else {
-                log.error("❌ Failed to save category: {}", categoryDto);
-                return new ResponseEntity<>("❌ Failed to save category", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+            return ResponseEntity.status(HttpStatus.CREATED).body("✅ Category stored successfully");
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (ValidationException e) {
-            log.error("🚨 Validation error: {}", e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
-            log.error("🚨 Exception occurred while saving category: {}", e.getMessage(), e);
-            return new ResponseEntity<>("❌ Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("❌ Internal server error");
         }
     }
     @GetMapping("/")

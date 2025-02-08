@@ -14,4 +14,5 @@ public interface CategoryRepository extends JpaRepository<Category,Integer> {
     List<Category> findByIsDeletedFalse();
 
     List<Category> findByIsActiveTrueAndIsDeletedFalse();
+    boolean existsByName(String name);  // Method to check duplicate category names
 }
