@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -30,11 +29,19 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public Boolean saveCategory(CategoryDto categoryDto) {
         try {
+            // Check if category name already exists (only for new categories)
+            if (categoryDto.getId() == null && categoryRepository.existsByName(categoryDto.getName())) {
+                log.warn("Category name '{}' already exists", categoryDto.getName());
+                throw new ResourceNotFoundException("Category name '" + categoryDto.getName() + "' already exists.");
+            }
+
             if (categoryDto.getId() != null) {
                 return updateExistingCategory(categoryDto);
             } else {
                 return createNewCategory(categoryDto);
             }
+        } catch (ResourceNotFoundException e) {
+            throw e; // Propagate specific exception
         } catch (Exception e) {
             log.error("Error while saving category: {}", e.getMessage(), e);
             return false;
@@ -45,9 +52,6 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             Category category = mapper.map(categoryDto, Category.class);
             category.setIsDeleted(false); // New categories should not be deleted
-//            category.setCreatedBy(1);
-//            category.setCreatedOn(new Date());
-
             return saveCategoryToDB(category);
         } catch (Exception e) {
             log.error("Error while creating new category: {}", e.getMessage(), e);
@@ -61,16 +65,13 @@ public class CategoryServiceImpl implements CategoryService {
             if (categoryOpt.isPresent()) {
                 Category existingCategory = categoryOpt.get();
 
-                // 🚫 Prevent update if category is deleted
+                // Prevent update if category is deleted
                 if (existingCategory.getIsDeleted()) {
                     log.warn("This category is deleted and cannot be updated. ID: {}", categoryDto.getId());
                     throw new ResourceNotFoundException("Deleted category cannot be updated.");
                 }
 
                 updateCategoryFields(existingCategory, categoryDto);
-//                existingCategory.setUpdatedBy(1);
-//                existingCategory.setUpdatedOn(new Date());
-
                 return saveCategoryToDB(existingCategory);
             } else {
                 log.error("Category not found with ID: {}", categoryDto.getId());
@@ -117,12 +118,10 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryDto> getAllCategories() {
         try {
-            List<Category> categorys = categoryRepository.findByIsDeletedFalse();
-            List<CategoryDto> categoryDtoList = categorys.stream()
+            List<Category> categories = categoryRepository.findByIsDeletedFalse();
+            return categories.stream()
                     .map(category -> mapper.map(category, CategoryDto.class))
                     .collect(Collectors.toList());
-            log.info("Retrieved all categories successfully: {}", categoryDtoList);
-            return categoryDtoList;
         } catch (Exception e) {
             log.error("Error while fetching all categories: {}", e.getMessage(), e);
             return List.of();
@@ -132,12 +131,10 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryResponse> getActiveCategories() {
         try {
-            List<Category> categorys = categoryRepository.findByIsActiveTrueAndIsDeletedFalse();
-            List<CategoryResponse> categoryResponseList = categorys.stream()
+            List<Category> categories = categoryRepository.findByIsActiveTrueAndIsDeletedFalse();
+            return categories.stream()
                     .map(c -> mapper.map(c, CategoryResponse.class))
                     .toList();
-            log.info("Retrieved active categories successfully.");
-            return categoryResponseList;
         } catch (Exception e) {
             log.error("Error while fetching active categories: {}", e.getMessage(), e);
             return List.of();
@@ -146,36 +143,11 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryDto getCateogryById(Integer id) {
-        try {
-            // Check if ID exists in the database
-            Optional<Category> categoryOptional = categoryRepository.findById(id);
-
-            if (categoryOptional.isEmpty()) {
-                log.warn("Category with ID {} does not exist", id);
-                throw new ResourceNotFoundException("Category ID " + id + " does not exist.");
-            }
-
-            // Check if the category is marked as deleted
-            Category category = categoryOptional.get();
-            if (category.getIsDeleted()) {
-                log.warn("Category with ID {} is deleted", id);
-                throw new ResourceNotFoundException("Category ID " + id + " is deleted and cannot be accessed.");
-            }
-
-            // Map to DTO and return response
-            CategoryDto categoryDto = mapper.map(category, CategoryDto.class);
-            log.info("Retrieved category by ID successfully: {}", id);
-            return categoryDto;
-
-        } catch (ResourceNotFoundException e) {
-            log.warn("Resource not found: {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error while fetching category by ID {}: {}", id, e.getMessage(), e);
-            throw new RuntimeException("Something went wrong while fetching the category. Please try again later.");
-        }
+        return categoryRepository.findById(id)
+                .filter(category -> !category.getIsDeleted())
+                .map(category -> mapper.map(category, CategoryDto.class))
+                .orElseThrow(() -> new ResourceNotFoundException("Category ID " + id + " not found or deleted."));
     }
-
 
     @Override
     public Boolean deleteCateogryById(Integer id) {
