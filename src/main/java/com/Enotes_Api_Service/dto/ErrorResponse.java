@@ -1,18 +1,29 @@
 package com.Enotes_Api_Service.dto;
 
-// ErrorResponse class to structure the response
-public  class ErrorResponse {
+import org.springframework.http.HttpStatus;
+
+public class ErrorResponse {
+    private HttpStatus httpStatus;
     private String status;
     private String message;
-    private String errorCode;
+    private Object data; // Ensure it's `null` in case of errors
 
-    public ErrorResponse(String status, String message, String errorCode) {
+    public ErrorResponse(HttpStatus httpStatus, String status, String message, Object data) {
+        this.httpStatus = httpStatus;
         this.status = status;
         this.message = message;
-        this.errorCode = errorCode;
+        this.data = data;
     }
 
     // Getters and Setters
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
+    }
+
+    public void setHttpStatus(HttpStatus httpStatus) {
+        this.httpStatus = httpStatus;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -29,11 +40,11 @@ public  class ErrorResponse {
         this.message = message;
     }
 
-    public String getErrorCode() {
-        return errorCode;
+    public Object getData() {
+        return data;
     }
 
-    public void setErrorCode(String errorCode) {
-        this.errorCode = errorCode;
+    public void setData(Object data) {
+        this.data = data;
     }
 }

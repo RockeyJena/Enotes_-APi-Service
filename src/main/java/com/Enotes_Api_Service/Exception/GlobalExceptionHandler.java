@@ -1,36 +1,34 @@
 package com.Enotes_Api_Service.Exception;
 
-import com.Enotes_Api_Service.Validation.ValidationException;
+import com.Enotes_Api_Service.Handler.GenericResponse;
 import com.Enotes_Api_Service.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
-import com.fasterxml.jackson.core.JsonParseException;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice
 @Slf4j
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Handles custom ResourceNotFoundException
+     * Handles Resource Not Found Exception
      */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        log.error("Resource Not Found Exception: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse(" ERROR ", ex.getMessage(), " RESOURCE_NOT_FOUND ");
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    public ResponseEntity<GenericResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+        log.error("Resource Not Found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(GenericResponse.failed(HttpStatus.BAD_REQUEST, ex.getMessage()));
     }
 
     /**
@@ -39,8 +37,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NullPointerException.class)
     public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex) {
         log.error("Null Pointer Exception: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse( " ERROR ", " Unexpected null value encountered. ", " NULL_POINTER_EXCEPTION");
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Error",
+                "Unexpected null value encountered.",
+                null
+        ), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -49,8 +51,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.error("Illegal Argument Exception: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse(" ERROR ", ex.getMessage(), " ILLEGAL_ARGUMENT");
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Error",
+                ex.getMessage(),
+                null
+        ), HttpStatus.BAD_REQUEST);
     }
 
     /**
@@ -59,8 +65,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
         log.error("Method Not Allowed: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse(" ERROR ", " HTTP method not supported for this request.", " METHOD_NOT_ALLOWED");
-        return new ResponseEntity<>(errorResponse, HttpStatus.METHOD_NOT_ALLOWED);
+        return new ResponseEntity<>(new ErrorResponse(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "Error",
+                "HTTP method not supported for this request.",
+                null
+        ), HttpStatus.METHOD_NOT_ALLOWED);
     }
 
     /**
@@ -69,23 +79,31 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponse> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
         log.error("Missing Request Parameter: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse(" ERROR ", " Required parameter is missing: " + ex.getParameterName(), " MISSING_PARAMETER");
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Error",
+                "Required parameter is missing: " + ex.getParameterName(),
+                null
+        ), HttpStatus.BAD_REQUEST);
     }
 
     /**
      * Handles Method Argument Not Valid Exception (Validation Errors)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex) {
         log.error("Validation Error: {}", ex.getMessage(), ex);
 
-        Map<String, String> errors = new HashMap<>();
+        Map<String, Object> errors = new HashMap<>();
+        errors.put("status", HttpStatus.BAD_REQUEST.value());
+        errors.put("error", "Validation Error");
+        errors.put("timestamp", LocalDateTime.now());
 
-        ex.getBindingResult().getFieldErrors().
-                forEach(error ->
-                errors.put(error.getField(), error.getDefaultMessage())
-        );
+        Map<String, String> validationErrors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(error -> validationErrors.put(error.getField(), error.getDefaultMessage()));
+
+        errors.put("errors", validationErrors);
 
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
@@ -96,68 +114,49 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoHandlerFound(NoHandlerFoundException ex) {
         log.error("No Handler Found: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse(" ERROR ", " Invalid URL or endpoint does not exist.", " NO_HANDLER_FOUND");
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(new ErrorResponse(
+                HttpStatus.NOT_FOUND,
+                "Error",
+                "Invalid URL or endpoint does not exist.",
+                null
+        ), HttpStatus.NOT_FOUND);
     }
 
     /**
-     * Handles generic RuntimeException
+     * Handles JSON Parsing Errors like Invalid Boolean values ("Tru fge")
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleJsonParseException(HttpMessageNotReadableException ex) {
+        log.error("JSON Parsing Error: {}", ex.getMessage(), ex);
+        return new ResponseEntity<>(new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Error",
+                "Invalid data format in request body. Ensure all values are correctly typed.",
+                null
+        ), HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles Generic RuntimeException
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
         log.error("Runtime Exception: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse("error", " An unexpected error occurred.", " RUNTIME_EXCEPTION");
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Error",
+                "An unexpected error occurred.",
+                null
+        ), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**
      * Handles Generic Exception (Fallback)
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+    public ResponseEntity<GenericResponse> handleGlobalException(Exception ex) {
         log.error("Unhandled Exception: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse("error", " Something went wrong. Please try again later. ", " INTERNAL_SERVER_ERROR");
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(GenericResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error: " + ex.getMessage()));
     }
-
-    @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(ValidationException ex) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
-        errorResponse.put("error", "Validation Error");
-        errorResponse.put("timestamp", LocalDateTime.now());
-        errorResponse.put("message", ex.getMessage());
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-    /**
-     * Handles JSON parsing errors like invalid Boolean values ("Tru fge")
-     */
-    @ExceptionHandler(JsonParseException.class)
-    public ResponseEntity<ErrorResponse> handleJsonParseException(JsonParseException ex) {
-        log.error("JSON Parsing Error: {}", ex.getMessage(), ex);
-        ErrorResponse errorResponse = new ErrorResponse(
-                "ERROR",
-                "Invalid data format in request body. Ensure all values are correctly typed.",
-                "JSON_PARSE_ERROR"
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-    /**
-     * Handles JSON parsing errors like invalid Boolean values ("Tru fge")
-     */
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
-        errorResponse.put("error", "Invalid input format");
-        errorResponse.put("timestamp", LocalDateTime.now());
-
-        String message = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
-        errorResponse.put("message", "Error parsing input: " + message);
-
-        // Optionally, you can log the exception to capture the root cause.
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
 }
